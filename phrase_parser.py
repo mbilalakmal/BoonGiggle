@@ -28,7 +28,15 @@ def query_to_terms(query):
 
     return terms
 
+
 def evaluate_phrase_query(terms, inverted_index):
+
+    if not set.issubset(
+        set(terms),
+        set(inverted_index.keys())
+    ):
+        return set()
+
     seperate_documents = [set(inverted_index[term].keys()) for term in terms]
     common_documents = set.intersection(*seperate_documents)
 
@@ -54,6 +62,26 @@ def evaluate_phrase_query(terms, inverted_index):
         
     return result
 
+
+def retreive_documents(query):
+    
+    filename = r'resources\inverted_index'
+    inverted_index = load_python_object(filename)
+
+    filename = r'resources\doc_ids'
+    doc_ids = load_python_object(filename)
+
+    terms = query_to_terms(query)
+
+    result = evaluate_phrase_query(terms, inverted_index)
+
+    if len(result) == 0:
+        return None
+    else:
+        documents = [doc_ids[doc_id] for doc_id in result]
+        return (result, documents)
+
+
 if __name__ == '__main__':
     
     #  Load Inverted Index and Doc IDs
@@ -63,7 +91,7 @@ if __name__ == '__main__':
     filename = r'resources\doc_ids'
     doc_ids = load_python_object(filename)
 
-    # Ask for boolean query
+    # Ask for phrase query
     query = input('Enter a phrase query: ')
 
     # Convert to phrase terms
@@ -76,6 +104,3 @@ if __name__ == '__main__':
         print('No relevant speeches.')
     else:
         print(result)
-        documents = [doc_ids[doc_id] for doc_id in result]
-        print(documents)
-        print(len(result))

@@ -107,6 +107,23 @@ def store_python_object(python_object, filename):
         pickle.dump(python_object, bin_file)
 
 
+def generate_index():
+    
+    pathname = r'resources\corpus\*.txt'
+    doc_ids, documents = read_txt_files(pathname)
+
+    filename = r'resources\doc_ids'
+    store_python_object(doc_ids, filename)
+
+    filename = r'resources\stopwords.txt'
+    stop_words = read_stop_words(filename)
+
+    inverted_index = build_positional_index(documents, stop_words)
+
+    filename = r'resources\inverted_index'
+    store_python_object(inverted_index, filename)
+
+
 if __name__ == '__main__':
 
     # Read all the documents

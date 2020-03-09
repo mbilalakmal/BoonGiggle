@@ -23,3 +23,14 @@ def dispatch_query(query):
         return proximity_parser.retreive_documents(query)
     else:
         return phrase_parser.retreive_documents(query)
+
+if __name__ == '__main__':
+
+    # Ask for query
+    query = input('Enter a query: ')
+    result = dispatch_query(query)
+
+    if len(result) == 0:
+        print('No relevant speeches.')
+    else:
+        print(result)

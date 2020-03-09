@@ -13,7 +13,10 @@
 # -----------------------------------------------------------
 
 import pickle
+import re
+
 from nltk import PorterStemmer
+
 
 def load_python_object(filename):
     with open(filename, 'rb') as object_file:
@@ -26,7 +29,7 @@ def query_to_terms(query):
     stemmer = PorterStemmer()
     terms = [stemmer.stem(token.lower()) for token in tokens]
 
-    proximity = int(terms[-1][-1]) + 1
+    proximity = int(re.search(r'\d+', query).group(0)) + 1
     print(proximity)
 
     return (terms[0], terms[1], proximity)
@@ -43,6 +46,12 @@ def is_proximity_in_doc(doc, term1, term2, proximity, inverted_index):
 
 def evaluate_proximity_query(term1, term2, proximity, inverted_index):
     
+    if not set.issubset(
+        set([term1, term2]),
+        set(inverted_index.keys())
+    ):
+        return set()
+
     result = set()
 
     doc_ids1 = set(inverted_index[term1].keys())
@@ -58,6 +67,26 @@ def evaluate_proximity_query(term1, term2, proximity, inverted_index):
             result.add(doc_id)
         
     return result
+
+
+def retreive_documents(query):
+    
+    filename = r'resources\inverted_index'
+    inverted_index = load_python_object(filename)
+
+    filename = r'resources\doc_ids'
+    doc_ids = load_python_object(filename)
+
+    term1, term2, proximity = query_to_terms(query)
+
+    result = evaluate_proximity_query(term1, term2, proximity, inverted_index)
+
+    if len(result) == 0:
+        return None
+    else:
+        documents = [doc_ids[doc_id] for doc_id in result]
+        return (result, documents)
+
 
 if __name__ == '__main__':
     
@@ -81,6 +110,3 @@ if __name__ == '__main__':
         print('No relevant speeches.')
     else:
         print(result)
-        documents = [doc_ids[doc_id] for doc_id in result]
-        print(documents)
-        print(len(result))

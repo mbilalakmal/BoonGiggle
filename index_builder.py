@@ -24,15 +24,14 @@ def read_txt_files(pathname, encoding = 'utf=8'):
     '''
     Return txt documents discovered in `pathname`.
     '''
-    documents = {}  # key = id, value = document
-
-    doc_ids = {}    # key = id, value = filename
+    documents   = {}    # numeric ID mapped to document body
+    doc_ids     = {}    # numeric ID mapped to file name
 
     # discover txt files in pathname
     # and load into documents dictionary
     for file_name in glob(pathname):
 
-        #get speech number from file name
+        #get numeric ID from file name
         doc_id = re.search(r'\d+', file_name).group(0)
         doc_ids[doc_id] = file_name
 
@@ -71,7 +70,7 @@ def build_positional_index(documents, stop_words):
 
     `stop_words` are excluded from indexing.
     '''
-    inverted_index = {} #[term][doc_id] = set(pos1, pos2)
+    inverted_index = {} # terms mapped to posting lists
 
     for item in documents.items():
 
@@ -128,5 +127,3 @@ if __name__ == '__main__':
     # Store the inverted index
     filename = r'resources\inverted_index'
     store_python_object(inverted_index, filename)
-
-    

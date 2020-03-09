@@ -23,6 +23,7 @@ def load_python_object(filename):
         python_object = pickle.load(object_file)
     return python_object
 
+
 def query_to_infix(query):
 
     expression = (
@@ -37,12 +38,11 @@ def query_to_infix(query):
     # tokenize -> list
     infix = expression.split()
 
-    print(infix)
-
     stemmer = PorterStemmer()
     infix = [ stemmer.stem(token.lower()) for token in infix ]
 
     return infix
+
 
 def infix_to_postfix(infix):
 
@@ -74,6 +74,7 @@ def infix_to_postfix(infix):
 
     return postfix
 
+
 def evaluate_postfix(postfix, inverted_index, doc_ids):
 
     # check if expression contains a single term only
@@ -101,34 +102,76 @@ def intersection(stack, inverted_index):
     operand2 = stack.pop()
 
     if type(operand1) is str:
-        operand1 = set(inverted_index[operand1].keys())
+        if operand1 in inverted_index:
+            operand1 = set(inverted_index[operand1].keys())
+        else:
+            operand1 = set()
+
     if type(operand2) is str:
-        operand2 = set(inverted_index[operand2].keys())
+        if operand2 in inverted_index:
+            operand2 = set(inverted_index[operand2].keys())
+        else:
+            operand2 = set()
 
     result = set.intersection(operand1, operand2)
     stack.append(result)
+
 
 def union(stack, inverted_index):
     operand1 = stack.pop()
     operand2 = stack.pop()
 
     if type(operand1) is str:
-        operand1 = set(inverted_index[operand1].keys())
+        if operand1 in inverted_index:
+            operand1 = set(inverted_index[operand1].keys())
+        else:
+            operand1 = set()
+
     if type(operand2) is str:
-        operand2 = set(inverted_index[operand2].keys())
+        if operand2 in inverted_index:
+            operand2 = set(inverted_index[operand2].keys())
+        else:
+            operand2 = set()
 
     result = set.union(operand1, operand2)
     stack.append(result)
+
 
 def negation(stack, inverted_index, doc_ids):
     operand = stack.pop()
 
     if type(operand) is str:
-        operand = set(inverted_index[operand].keys())
+        if operand in inverted_index:
+            operand = set(inverted_index[operand].keys())
+        else:
+            operand = set()
 
     total = set(doc_ids.keys())
     result = set.difference(total, operand)
     stack.append(result)
+
+
+def retreive_documents(query):
+    
+    filename = r'resources\inverted_index'
+    inverted_index = load_python_object(filename)
+
+    filename = r'resources\doc_ids'
+    doc_ids = load_python_object(filename)
+
+    infix = query_to_infix(query)
+
+    postfix = infix_to_postfix(infix)
+
+    # Evaluate postfix expression
+    result = evaluate_postfix(postfix, inverted_index, doc_ids)
+
+    if len(result) == 0:
+        return None
+    else:
+        documents = [doc_ids[doc_id] for doc_id in result]
+        return (result, documents)
+
 
 if __name__ == '__main__':
     
@@ -157,6 +200,3 @@ if __name__ == '__main__':
         print('No relevant speeches.')
     else:
         print(result)
-        documents = [doc_ids[doc_id] for doc_id in result]
-        print(documents)
-        print(len(result))

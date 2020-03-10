@@ -1,3 +1,5 @@
 venv/
 .vscode/
 __pycache__/
+resources/doc_ids
+resources/inverted_index

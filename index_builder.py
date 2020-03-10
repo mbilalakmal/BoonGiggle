@@ -11,50 +11,18 @@
 #
 #
 # (C) 2020 Muhammad Bilal Akmal, 17K-3669
-# email k173669@nu.edu.pk
 # -----------------------------------------------------------
 
-import pickle           # dump  | storing to file
-import re               # split | tokenizing of documents' body
-from glob import glob   # glob  | discover names of all txt files
-from nltk import PorterStemmer  # stem  | stemming of tokens
+import re
+from nltk import PorterStemmer
+import filing
 
 
-def read_txt_files(pathname, encoding = 'utf=8'):
-    '''
-    Return txt documents discovered in `pathname`.
-    '''
-    documents   = {}    # numeric ID mapped to document body
-    doc_ids     = {}    # numeric ID mapped to file name
-
-    # discover txt files in pathname
-    # and load into documents dictionary
-    for file_name in glob(pathname):
-
-        #get numeric ID from file name
-        doc_id = re.search(r'\d+', file_name).group(0)
-        doc_ids[doc_id] = file_name
-
-        with open(file_name, 'r', encoding=encoding) as txt_file:
-            _ = txt_file.readline()     #discard title
-            document = txt_file.read()
-            documents[doc_id] = document
-
-    return (doc_ids, documents)
-
-
-def read_stop_words(filename):
-    '''
-    Return stop words present in `filename`.
-    '''
-    with open(filename, 'r') as txt_file:
-        stop_words = set( txt_file.read().split() )
-    return stop_words
-
-
-def sanitize_tokens(tokens):
+def _sanitize_tokens(tokens):
     '''
     Return case-folded and stemmed `tokens`.
+
+    Normalization and Lemmatization can be added.
     '''
     folded_tokens = [token.lower() for token in tokens]
 
@@ -64,7 +32,7 @@ def sanitize_tokens(tokens):
     return stemmed_tokens
 
 
-def build_positional_index(documents, stop_words):
+def _build_positional_index(documents, stop_words):
     '''
     Build a positional index by extracting terms from `documents`.
 
@@ -77,7 +45,7 @@ def build_positional_index(documents, stop_words):
         doc_id, document = item
         pattern = r'\W+'
         tokens = re.split(pattern, document)
-        sanitized_tokens = sanitize_tokens(tokens)
+        sanitized_tokens = _sanitize_tokens(tokens)
 
         for position, term in enumerate(sanitized_tokens):
 
@@ -97,50 +65,29 @@ def build_positional_index(documents, stop_words):
     return inverted_index
 
 
-def store_python_object(python_object, filename):
+def generate_index_file():
     '''
-    Store `python_object` in `filename`.
-
-    If `filename` exists, it will be overwritten.
+    Create index file from the corpus.
     '''
-    with open(filename, 'wb') as bin_file:
-        pickle.dump(python_object, bin_file)
-
-
-def generate_index():
-    
+    # Read all the document files
     pathname = r'resources\corpus\*.txt'
-    doc_ids, documents = read_txt_files(pathname)
+    doc_ids, documents = filing.read_docs_files(pathname)
 
+    # Store doc_ids->filename dictionary
     filename = r'resources\doc_ids'
-    store_python_object(doc_ids, filename)
+    filing.store_python_object(doc_ids, filename)
 
+    # Read the stop words
     filename = r'resources\stopwords.txt'
-    stop_words = read_stop_words(filename)
-
-    inverted_index = build_positional_index(documents, stop_words)
-
-    filename = r'resources\inverted_index'
-    store_python_object(inverted_index, filename)
-
-
-if __name__ == '__main__':
-
-    # Read all the documents
-    pathname = r'resources\corpus\*.txt'
-    doc_ids, documents = read_txt_files(pathname)
-
-    # Store doc_ids
-    filename = r'resources\doc_ids'
-    store_python_object(doc_ids, filename)
-
-    #Read the stop words
-    filename = r'resources\stopwords.txt'
-    stop_words = read_stop_words(filename)
+    stop_words = filing.read_stop_words(filename)
 
     # Create the inverted index
-    inverted_index = build_positional_index(documents, stop_words)
+    inverted_index = _build_positional_index(documents, stop_words)
 
     # Store the inverted index
     filename = r'resources\inverted_index'
-    store_python_object(inverted_index, filename)
+    filing.store_python_object(inverted_index, filename)
+
+
+if __name__ == '__main__':
+    generate_index_file()

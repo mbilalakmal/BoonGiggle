@@ -14,22 +14,9 @@
 # -----------------------------------------------------------
 
 import re
-from nltk import PorterStemmer
+
 import filing
-
-
-def _sanitize_tokens(tokens):
-    '''
-    Return case-folded and stemmed `tokens`.
-
-    Normalization and Lemmatization can be added.
-    '''
-    folded_tokens = [token.lower() for token in tokens]
-
-    stemmer = PorterStemmer()
-    stemmed_tokens = [stemmer.stem(token) for token in folded_tokens]
-
-    return stemmed_tokens
+import token_normalizer
 
 
 def _build_positional_index(documents, stop_words):
@@ -45,7 +32,7 @@ def _build_positional_index(documents, stop_words):
         doc_id, document = item
         pattern = r'\W+'
         tokens = re.split(pattern, document)
-        sanitized_tokens = _sanitize_tokens(tokens)
+        sanitized_tokens = token_normalizer.normalize_tokens(tokens)
 
         for position, term in enumerate(sanitized_tokens):
 

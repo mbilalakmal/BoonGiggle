@@ -9,34 +9,33 @@
 #
 #
 # (C) 2020 Muhammad Bilal Akmal, 17K-3669
-# email k173669@nu.edu.pk
 # -----------------------------------------------------------
 
-import pickle
 import re
 
-from nltk import PorterStemmer
+import filing
+import token_normalizer
 
 
-def load_python_object(filename):
-    with open(filename, 'rb') as object_file:
-        python_object = pickle.load(object_file)
-    return python_object
+def _query_to_terms(query):
+    '''
+    Convert `query` to terms.
 
-
-def query_to_terms(query):
+    Returns the terms and the proximity as a tuple.
+    '''
     tokens = query.split()
-    stemmer = PorterStemmer()
-    terms = [stemmer.stem(token.lower()) for token in tokens]
+    terms = token_normalizer.normalize_tokens(tokens)
 
     proximity = int(re.search(r'\d+', query).group(0)) + 1
-    print(proximity)
-
     return (terms[0], terms[1], proximity)
 
 
-def is_proximity_in_doc(doc, term1, term2, proximity, inverted_index):
+def _is_proximity_in_doc(doc, term1, term2, proximity, inverted_index):
+    '''
+    Return `True` if two terms are `proximity` words apart in `doc`.
 
+    `False` otherwise.
+    '''
     for position1 in inverted_index[term1][doc]:
         for position2 in inverted_index[term2][doc]:
             if abs(position2 - position1) == proximity:
@@ -44,8 +43,11 @@ def is_proximity_in_doc(doc, term1, term2, proximity, inverted_index):
     return False
 
 
-def evaluate_proximity_query(term1, term2, proximity, inverted_index):
-    
+def _evaluate_proximity_query(term1, term2, proximity, inverted_index):
+    '''
+    Return a set containing relevant doc_ids.
+    '''
+    # if one of the terms is not indexed return an empty set.
     if not set.issubset(
         set([term1, term2]),
         set(inverted_index.keys())
@@ -53,7 +55,6 @@ def evaluate_proximity_query(term1, term2, proximity, inverted_index):
         return set()
 
     result = set()
-
     doc_ids1 = set(inverted_index[term1].keys())
     doc_ids2 = set(inverted_index[term2].keys())
 
@@ -61,7 +62,7 @@ def evaluate_proximity_query(term1, term2, proximity, inverted_index):
         if doc_id not in doc_ids2:
             continue
 
-        if is_proximity_in_doc(
+        if _is_proximity_in_doc(
             doc_id, term1, term2, proximity, inverted_index
             ):
             result.add(doc_id)
@@ -70,16 +71,21 @@ def evaluate_proximity_query(term1, term2, proximity, inverted_index):
 
 
 def retreive_documents(query):
-    
+    '''
+    Retreive documents relevant to the proximity `query`.
+
+    Returns a tuple of sets containing doc_ids and filenames.
+    `None` if no relevant documents are found.
+    '''
     filename = r'resources\inverted_index'
-    inverted_index = load_python_object(filename)
+    inverted_index = filing.load_python_object(filename)
 
     filename = r'resources\doc_ids'
-    doc_ids = load_python_object(filename)
+    doc_ids = filing.load_python_object(filename)
 
-    term1, term2, proximity = query_to_terms(query)
+    term1, term2, proximity = _query_to_terms(query)
 
-    result = evaluate_proximity_query(term1, term2, proximity, inverted_index)
+    result = _evaluate_proximity_query(term1, term2, proximity, inverted_index)
 
     if len(result) == 0:
         return None
@@ -90,23 +96,12 @@ def retreive_documents(query):
 
 if __name__ == '__main__':
     
-    #  Load Inverted Index and Doc IDs
-    filename = r'resources\inverted_index'
-    inverted_index = load_python_object(filename)
-
-    filename = r'resources\doc_ids'
-    doc_ids = load_python_object(filename)
-
     # Ask for proximity query
     query = input('Enter a proximity query: ')
 
-    # Convert to proximity terms
-    term1, term2, proximity = query_to_terms(query)
+    result = retreive_documents(query)
 
-    # Evaluate proximity query
-    result = evaluate_proximity_query(term1, term2, proximity, inverted_index)
-
-    if len(result) == 0:
+    if result == None:
         print('No relevant speeches.')
     else:
         print(result)

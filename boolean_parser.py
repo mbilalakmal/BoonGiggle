@@ -9,23 +9,21 @@
 #
 #
 # (C) 2020 Muhammad Bilal Akmal, 17K-3669
-# email k173669@nu.edu.pk
 # -----------------------------------------------------------
 
-import pickle
-import re
-import string
 from collections import deque
-from nltk import PorterStemmer
 
-def load_python_object(filename):
-    with open(filename, 'rb') as object_file:
-        python_object = pickle.load(object_file)
-    return python_object
+import filing
+import token_normalizer
 
 
-def query_to_infix(query):
+def _query_to_infix(query):
+    '''
+    Convert `query` to an infix boolean expression.
 
+    AND, OR, NOT are replaced with *, +, ~.
+    Whitespaces are added for further processing.
+    '''
     expression = (
         query
         .replace('(', ' ( ')
@@ -34,18 +32,18 @@ def query_to_infix(query):
         .replace('OR', ' + ')
         .replace('NOT', ' ~ ')
     )
+    tokens = expression.split()
 
-    # tokenize -> list
-    infix = expression.split()
-
-    stemmer = PorterStemmer()
-    infix = [ stemmer.stem(token.lower()) for token in infix ]
-
+    infix = token_normalizer.normalize_tokens(tokens)
     return infix
 
 
-def infix_to_postfix(infix):
+def _infix_to_postfix(infix):
+    '''
+    Return a postfix expression from an `infix` expression.
 
+    Shunting-yard algorithm is employed.
+    '''
     stack = deque()
     postfix = []
 
@@ -57,7 +55,7 @@ def infix_to_postfix(infix):
             while True:
                 if not stack:
                     # wrong infix
-                    print('WRONG EQUATION FOOL')
+                    print('INCORRECT EQUATION FOOL')
                     return None
                 if stack[-1] == '(':
                     stack.pop()
@@ -67,57 +65,74 @@ def infix_to_postfix(infix):
         elif token in ['*', '+', '~']:
             stack.append(token) #precedence not implemented
         else:
-            postfix.append(token)   #operand
+            postfix.append(token) #operand
 
     stack.reverse()
-    postfix.extend(stack)   #empty the stack
+    postfix.extend(stack) #empty the stack
 
     return postfix
 
 
-def evaluate_postfix(postfix, inverted_index, doc_ids):
+def _evaluate_postfix(postfix, inverted_index, doc_ids):
+    '''
+    Evaluate the `postfix` expression.
 
-    # check if expression contains a single term only
-    if len(postfix) == 1:
+    Returns a set containing relevant doc_ids.
+    '''
+    if len(postfix) == 1: # short circuit single-term queries
         docs = set(inverted_index[postfix[0]].keys())
         return docs
 
     stack = deque()
-
     for symbol in postfix:
         if symbol not in ['*', '+', '~', '%']:
             stack.append(symbol)
+
         elif symbol == '*':
-            intersection(stack, inverted_index)
+            _intersection(stack, inverted_index)
+
         elif symbol == '+':
-            union(stack, inverted_index)
+            _union(stack, inverted_index)
+
         elif symbol == '~':
-            negation(stack, inverted_index, doc_ids)
+            _negation(stack, inverted_index, doc_ids)
     
     return stack[0]
 
 
-def intersection(stack, inverted_index):
+def _intersection(stack, inverted_index):
+    '''
+    Perform intersection (AND) operation.
+
+    Pops two operands and pushes their result on `stack`.
+    '''
     operand1 = stack.pop()
     operand2 = stack.pop()
 
     if type(operand1) is str:
         if operand1 in inverted_index:
             operand1 = set(inverted_index[operand1].keys())
-        else:
-            operand1 = set()
+        else: #if term does not exist, intersection will be empty
+            stack.append(set())
+            return
 
     if type(operand2) is str:
         if operand2 in inverted_index:
             operand2 = set(inverted_index[operand2].keys())
-        else:
-            operand2 = set()
+        else: #if term does not exist, intersection will be empty
+            stack.append(set())
+            return
 
     result = set.intersection(operand1, operand2)
     stack.append(result)
 
 
-def union(stack, inverted_index):
+def _union(stack, inverted_index):
+    '''
+    Perform union (OR) operation.
+
+    Pops two operands and pushes their result on `stack`.
+    '''
     operand1 = stack.pop()
     operand2 = stack.pop()
 
@@ -137,7 +152,12 @@ def union(stack, inverted_index):
     stack.append(result)
 
 
-def negation(stack, inverted_index, doc_ids):
+def _negation(stack, inverted_index, doc_ids):
+    '''
+    Perform complement (NOT) operation.
+
+    Pops one operand and pushes the result on `stack`.
+    '''
     operand = stack.pop()
 
     if type(operand) is str:
@@ -152,19 +172,24 @@ def negation(stack, inverted_index, doc_ids):
 
 
 def retreive_documents(query):
-    
+    '''
+    Retreive documents relevant to the boolean `query`.
+
+    Returns a tuple of sets containing doc_ids and filenames.
+    `None` if no relevant documents are found.
+    '''
     filename = r'resources\inverted_index'
-    inverted_index = load_python_object(filename)
+    inverted_index = filing.load_python_object(filename)
 
     filename = r'resources\doc_ids'
-    doc_ids = load_python_object(filename)
+    doc_ids = filing.load_python_object(filename)
 
-    infix = query_to_infix(query)
+    infix = _query_to_infix(query)
 
-    postfix = infix_to_postfix(infix)
+    postfix = _infix_to_postfix(infix)
 
     # Evaluate postfix expression
-    result = evaluate_postfix(postfix, inverted_index, doc_ids)
+    result = _evaluate_postfix(postfix, inverted_index, doc_ids)
 
     if len(result) == 0:
         return None
@@ -174,29 +199,13 @@ def retreive_documents(query):
 
 
 if __name__ == '__main__':
-    
-    #  Load Inverted Index and Doc IDs
-    filename = r'resources\inverted_index'
-    inverted_index = load_python_object(filename)
-
-    filename = r'resources\doc_ids'
-    doc_ids = load_python_object(filename)
 
     # Ask for boolean query
     query = input('Enter a boolean query: ')
 
-    # Convert to infix expression
-    infix = query_to_infix(query)
+    result = retreive_documents(query)
 
-    # Convert to postfix expression
-    postfix = infix_to_postfix(infix)
-
-    print(postfix)
-
-    # Evaluate postfix expression
-    result = evaluate_postfix(postfix, inverted_index, doc_ids)
-
-    if len(result) == 0:
+    if result == None:
         print('No relevant speeches.')
     else:
         print(result)

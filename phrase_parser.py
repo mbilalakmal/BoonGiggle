@@ -9,35 +9,36 @@
 #
 #
 # (C) 2020 Muhammad Bilal Akmal, 17K-3669
-# email k173669@nu.edu.pk
 # -----------------------------------------------------------
 
-import pickle
-from nltk import PorterStemmer
-
-def load_python_object(filename):
-    with open(filename, 'rb') as object_file:
-        python_object = pickle.load(object_file)
-    return python_object
+import filing
+import token_normalizer
 
 
-def query_to_terms(query):
+def _query_to_terms(query):
+    '''
+    Convert `query` to list of terms.
+    '''
     tokens = query.split()
-    stemmer = PorterStemmer()
-    terms = [stemmer.stem(token.lower()) for token in tokens]
+    terms = token_normalizer.normalize_tokens(tokens)
 
     return terms
 
 
-def evaluate_phrase_query(terms, inverted_index):
-
+def _evaluate_phrase_query(terms, inverted_index):
+    '''
+    Return a set containing relevant doc_ids.
+    '''
+    # if one of the terms is not indexed return an empty set.
     if not set.issubset(
         set(terms),
         set(inverted_index.keys())
     ):
         return set()
 
+    # a list of sets where each set is documents containing one of the terms.
     seperate_documents = [set(inverted_index[term].keys()) for term in terms]
+    # a single set of documents that contain all the terms
     common_documents = set.intersection(*seperate_documents)
 
     result = set()
@@ -64,16 +65,21 @@ def evaluate_phrase_query(terms, inverted_index):
 
 
 def retreive_documents(query):
-    
+    '''
+    Retreive documents relevant to the proximity `query`.
+
+    Returns a tuple of sets containing doc_ids and filenames.
+    `None` if no relevant documents are found.
+    '''
     filename = r'resources\inverted_index'
-    inverted_index = load_python_object(filename)
+    inverted_index = filing.load_python_object(filename)
 
     filename = r'resources\doc_ids'
-    doc_ids = load_python_object(filename)
+    doc_ids = filing.load_python_object(filename)
 
-    terms = query_to_terms(query)
+    terms = _query_to_terms(query)
 
-    result = evaluate_phrase_query(terms, inverted_index)
+    result = _evaluate_phrase_query(terms, inverted_index)
 
     if len(result) == 0:
         return None
@@ -84,23 +90,12 @@ def retreive_documents(query):
 
 if __name__ == '__main__':
     
-    #  Load Inverted Index and Doc IDs
-    filename = r'resources\inverted_index'
-    inverted_index = load_python_object(filename)
-
-    filename = r'resources\doc_ids'
-    doc_ids = load_python_object(filename)
-
     # Ask for phrase query
     query = input('Enter a phrase query: ')
 
-    # Convert to phrase terms
-    terms = query_to_terms(query)
+    result = retreive_documents(query)
 
-    # Evaluate phrase query
-    result = evaluate_phrase_query(terms, inverted_index)
-
-    if len(result) == 0:
+    if result == None:
         print('No relevant speeches.')
     else:
         print(result)

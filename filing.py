@@ -6,13 +6,13 @@
 # -----------------------------------------------------------
 
 import pickle
-from glob import glob
 import re
+from glob import glob
 
 
 def load_python_object(filename):
     '''
-    Loads and return an object from `filename`.
+    Load and return an object from `filename`.
     '''
     with open(filename, 'rb') as object_file:
         python_object = pickle.load(object_file)

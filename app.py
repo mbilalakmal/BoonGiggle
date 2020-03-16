@@ -13,7 +13,7 @@ from query_dispatcher import dispatch_query
 sg.theme('DarkBlue')
 
 layout = [  [sg.Text('')],
-            [sg.Image(r'D:\BoonGiggle\resources\icon.png'), sg.Text('BoonGiggle', font=('Helvetica', 18))],
+            [sg.Image(r'resources\icon.png'), sg.Text('BoonGiggle', font=('Helvetica', 18))],
             [sg.Text('A Search Engine For Trump\'s Speeches.', font=('Helvetica', 9))],
             [sg.Input(key='_QUERY_'), sg.Button('SEARCH')],
             [sg.Text('')],
